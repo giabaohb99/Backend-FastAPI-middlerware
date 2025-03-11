@@ -193,9 +193,9 @@ mirco/
 
 1. phần đăng ký:
 ```markdown
-![postman phần đăng ký](docs/images/postmantaotaikhoang.png)
+![postman](docs/images/postmantaotaikhoang.png)
 ```
 2. phần đăng nhập:
 ```markdown
-![postman phần đăng nhập](docs/images/postmandangnhap.png)
+![postman](docs/images/postmandangnhap.png)
 ```
