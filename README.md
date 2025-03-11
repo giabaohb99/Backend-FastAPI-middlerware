@@ -175,7 +175,7 @@ mirco/
 ## khi gọi API thì sẽ được ghi vào log
 
 1. phần log:
-![database log](docs/images/log.png)
+![log](docs/images/logs.png)
 
 ## postman ví dụ
 
