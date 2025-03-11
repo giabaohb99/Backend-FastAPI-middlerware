@@ -2,6 +2,17 @@
 
 Dự án microservices sử dụng FastAPI, MySQL, và Docker.
 
+## Hình ảnh minh họa
+
+### Cấu trúc hệ thống
+![System Architecture](docs/images/system-architecture.png)
+
+### Giao diện Adminer
+![Adminer Interface](docs/images/adminer-interface.png)
+
+### API Documentation (Swagger UI)
+![API Documentation](docs/images/api-docs.png)
+
 ## Yêu cầu hệ thống
 
 - Docker và Docker Compose
@@ -170,4 +181,21 @@ mirco/
 
 3. Nếu không thể truy cập Adminer:
    - Kiểm tra logs: `docker-compose logs adminer`
-   - Đảm bảo port 8080 không bị sử dụng 
+   - Đảm bảo port 8080 không bị sử dụng
+
+## khi gọi API thì sẽ được ghi vào log
+
+1. phần log:
+```markdown
+![database log](docs/images/log.png)
+```
+## postman ví dụ
+
+1. phần đăng ký:
+```markdown
+![postman phần đăng ký](docs/images/postmantaotaikhoang.png)
+```
+2. phần đăng nhập:
+```markdown
+![postman phần đăng nhập](docs/images/postmandangnhap.png)
+```
