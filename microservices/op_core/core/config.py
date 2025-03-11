@@ -30,9 +30,10 @@ class Settings(BaseSettings):
     }
     DATABASE_URL: str = f"mysql+pymysql://{DATABASE_CONFIG['user']}:{DATABASE_CONFIG['password']}@{DATABASE_CONFIG['host']}/{DATABASE_CONFIG['database']}"
 
-    # Security settings
-    SECRET_KEY: str = "your-secret-key-here"
+      # Security settings
+    SECRET_KEY: str = "abc-giabao-1234"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ALGORITHM: str = "HS256"  # Thêm dòng này
     
     # Docker service configurations
     DOCKER_CONFIG: ClassVar[Dict[str, Dict[str, Any]]] = {
