@@ -2,17 +2,6 @@
 
 Dự án microservices sử dụng FastAPI, MySQL, và Docker.
 
-## Hình ảnh minh họa
-
-### Cấu trúc hệ thống
-![System Architecture](docs/images/system-architecture.png)
-
-### Giao diện Adminer
-![Adminer Interface](docs/images/adminer-interface.png)
-
-### API Documentation (Swagger UI)
-![API Documentation](docs/images/api-docs.png)
-
 ## Yêu cầu hệ thống
 
 - Docker và Docker Compose
@@ -186,16 +175,13 @@ mirco/
 ## khi gọi API thì sẽ được ghi vào log
 
 1. phần log:
-```markdown
 ![database log](docs/images/log.png)
-```
+
 ## postman ví dụ
 
 1. phần đăng ký:
-```markdown
 ![postman](docs/images/postmantaotaikhoang.png)
-```
+
 2. phần đăng nhập:
-```markdown
 ![postman](docs/images/postmandangnhap.png)
-```
+
