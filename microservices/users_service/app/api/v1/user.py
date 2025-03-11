@@ -16,6 +16,9 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 def register(*, db: Session = Depends(get_db), user_in: UserCreate) -> Any:
     """
     Register new user.
+
+
+    
     """
     user = get_user_by_email(db, email=user_in.email)
     if user:
