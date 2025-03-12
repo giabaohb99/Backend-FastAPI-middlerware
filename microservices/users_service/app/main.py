@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from op_core.core import settings, log_request_middleware
+from op_core.core import settings, LoggingMiddleware, RateLimitMiddleware
 
 from .api.v1 import api
 
@@ -16,14 +16,17 @@ app = FastAPI(
 # Set all CORS enabled origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.CORS['ALLOW_ORIGINS'],
+    allow_credentials=settings.CORS['ALLOW_CREDENTIALS'],
+    allow_methods=settings.CORS['ALLOW_METHODS'],
+    allow_headers=settings.CORS['ALLOW_HEADERS'],
 )
 
+# Add rate limiting middleware
+app.add_middleware(RateLimitMiddleware)
+
 # Add request logging middleware
-app.middleware("http")(log_request_middleware)
+app.add_middleware(LoggingMiddleware)
 
 # Include routers
 app.include_router(

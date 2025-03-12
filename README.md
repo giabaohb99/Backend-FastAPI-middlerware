@@ -1,12 +1,13 @@
 # Microservices Project
 
-Dự án microservices sử dụng FastAPI, MySQL, và Docker.
+Dự án microservices sử dụng FastAPI, MySQL, Redis và Docker với các tính năng bảo mật nâng cao.
 
 ## Yêu cầu hệ thống
 
 - Docker và Docker Compose
 - Python 3.9 hoặc cao hơn (nếu chạy không dùng Docker)
 - MySQL 8.0 hoặc cao hơn (nếu chạy không dùng Docker)
+- Redis 6.0 hoặc cao hơn (nếu chạy không dùng Docker)
 
 ## Cài đặt và Chạy
 
@@ -24,6 +25,7 @@ docker-compose up --build
 Các services sẽ chạy ở các cổng sau:
 - Users Service API: http://localhost:8000
 - MySQL: localhost:3399
+- Redis: localhost:6379
 - Adminer (MySQL Management): http://localhost:8080
 
 ### 2. Khởi tạo Database
@@ -56,17 +58,7 @@ CREATE TABLE `users` (
   `updated_at` int NOT NULL DEFAULT '0'
 ) COLLATE 'utf8mb4_0900_ai_ci';
 
-```
-
-Hoặc sử dụng command line:
-```bash
-# Chạy file migration
-docker-compose exec mysql mysql -u admin -p123456 podv1 < microservices/users_service/app/crud/migrition/2025-11-03-192100.sql
-```
-
-### 3. Tạo bảng logs để theo dõi API calls
-
-```sql
+-- Tạo bảng logs để theo dõi API calls
 CREATE TABLE logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
     method VARCHAR(10) NOT NULL,
@@ -78,11 +70,44 @@ CREATE TABLE logs (
     user_agent VARCHAR(255),
     process_time FLOAT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    sql_queries text NULL,
     INDEX idx_created_at (created_at),
     INDEX idx_method (method),
     INDEX idx_status_code (status_code)
 );
 ```
+
+Hoặc sử dụng command line:
+```bash
+# Chạy file migration
+docker-compose exec mysql mysql -u admin -p123456 podv1 < microservices/users_service/app/crud/migrition/2025-11-03-192100.sql
+```
+
+## Tính năng Bảo mật
+
+### 1. Rate Limiting
+- Giới hạn số lượng request từ mỗi IP
+- Cooldown period giữa các request
+- Theo dõi request theo path và body hash
+- Trả về thông tin chi tiết khi vượt quá giới hạn
+
+### 2. Logging và Monitoring
+- Log tất cả các request/response
+- Theo dõi SQL queries và thời gian thực thi
+- Tự động xóa logs cũ (mặc định 30 phút)
+- Log chi tiết các lỗi và stack traces
+
+### 3. Error Handling
+- Xử lý lỗi chi tiết cho SQL queries
+- Trả về JSON responses với thông tin lỗi
+- Log các lỗi với timestamp
+- Bảo vệ thông tin nhạy cảm trong logs
+
+### 4. Redis Security
+- Yêu cầu mật khẩu cho Redis
+- Phân tách databases cho các mục đích khác nhau
+- Rate limiting sử dụng Redis
+- Persistent storage cho Redis data
 
 ## API Endpoints
 
@@ -125,6 +150,7 @@ Response sẽ trả về access token để sử dụng cho các API khác.
 
 ## Kiểm tra Logs
 
+### 1. Truy cập Logs qua Adminer
 1. Truy cập Adminer: http://localhost:8080
 2. Đăng nhập như hướng dẫn ở trên
 3. Chọn database "podv1"
@@ -132,6 +158,28 @@ Response sẽ trả về access token để sử dụng cho các API khác.
 5. Xem các request logs với câu lệnh:
 ```sql
 SELECT * FROM logs ORDER BY created_at DESC;
+```
+
+### 2. Redis Monitoring
+1. Truy cập Redis CLI:
+```bash
+docker exec -it mirco_redis_1 redis-cli
+AUTH 123456789
+```
+
+2. Các lệnh Redis hữu ích:
+```bash
+# Xem tất cả keys
+KEYS *
+
+# Xem thông tin server
+INFO
+
+# Xóa tất cả keys trong database hiện tại
+FLUSHDB
+
+# Xóa tất cả keys trong tất cả databases
+FLUSHALL
 ```
 
 ## Cấu trúc Project
@@ -160,28 +208,57 @@ mirco/
 
 ## Troubleshooting
 
-1. Nếu gặp lỗi kết nối MySQL:
-   - Kiểm tra logs: `docker-compose logs mysql`
-   - Đảm bảo port 3399 không bị sử dụng
+### 1. Lỗi Kết nối MySQL
+- Kiểm tra logs: `docker-compose logs mysql`
+- Đảm bảo port 3399 không bị sử dụng
+- Kiểm tra thông tin đăng nhập trong docker-compose.yml
 
-2. Nếu API không phản hồi:
-   - Kiểm tra logs: `docker-compose logs users_service`
-   - Đảm bảo port 8000 không bị sử dụng
+### 2. Lỗi API không phản hồi
+- Kiểm tra logs: `docker-compose logs users_service`
+- Đảm bảo port 8000 không bị sử dụng
+- Kiểm tra kết nối Redis và MySQL
 
-3. Nếu không thể truy cập Adminer:
-   - Kiểm tra logs: `docker-compose logs adminer`
-   - Đảm bảo port 8080 không bị sử dụng
+### 3. Lỗi Rate Limiting
+- Kiểm tra Redis logs: `docker-compose logs redis`
+- Kiểm tra cấu hình rate limit trong config.py
+- Xóa Redis cache nếu cần: `FLUSHALL` trong Redis CLI
 
-## khi gọi API thì sẽ được ghi vào log
+### 4. Lỗi Logging
+- Kiểm tra quyền truy cập database
+- Kiểm tra cấu hình logging trong middleware.py
+- Xem logs của service: `docker-compose logs users_service`
 
-1. phần log:
-![log](docs/images/logs.png)
+## Bảo mật và Best Practices
 
-## postman ví dụ
+1. **Môi trường Production**
+   - Thay đổi tất cả mật khẩu mặc định
+   - Sử dụng HTTPS
+   - Cấu hình firewall
+   - Backup dữ liệu thường xuyên
 
-1. phần đăng ký:
+2. **Rate Limiting**
+   - Điều chỉnh giới hạn theo nhu cầu
+   - Monitor số lượng request
+   - Cấu hình cooldown period phù hợp
+
+3. **Logging**
+   - Điều chỉnh thời gian lưu logs
+   - Monitor dung lượng logs
+   - Backup logs quan trọng
+
+4. **Database**
+   - Backup thường xuyên
+   - Monitor performance
+   - Cleanup dữ liệu cũ
+
+## Ví dụ Postman
+
+1. Đăng ký tài khoản:
 ![postman](docs/images/postmantaotaikhoang.png)
 
-2. phần đăng nhập:
+2. Đăng nhập:
 ![postman](docs/images/postmandangnhap.png)
+
+3. Xem logs:
+![log](docs/images/logs.png)
 

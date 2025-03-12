@@ -9,10 +9,15 @@ services:
       - "${USERS_PORT:-8000}:8000"
     depends_on:
       - mysql
+      - redis
     volumes:
       - ./microservices:/app
     networks:
       - app-network
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=123456789
 
   mysql:
     image: mysql:8.0
@@ -22,9 +27,19 @@ services:
       MYSQL_USER: ${MYSQL_USER:-admin}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-123456}
     ports:
-      - "${MYSQL_PORT:-3399}:3399"
+      - "${MYSQL_PORT:-3399}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    networks:
+      - app-network
+
+  redis:
+    image: redis:latest
+    command: redis-server --requirepass 123456789
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
     networks:
       - app-network
 
@@ -39,6 +54,7 @@ services:
 
 volumes:
   mysql_data:
+  redis_data:
 
 
 networks:
