@@ -37,6 +37,11 @@ class Settings:
         }
 
         # Database settings
+        # AVNS
+        # _lAfoL7_
+        # p7q3u4Nj8yl4
+        # lấy 3 dòng đầu thành chuỗi là matkhau, con duoi là port
+        # 18336
         self.DATABASE_CONFIG = {
             "host": os.getenv('MYSQL_HOST', 'db1832025-hb-fd17.e.aivencloud.com'),
             "port": int(os.getenv('MYSQL_PORT', 'your_port')),
@@ -44,6 +49,8 @@ class Settings:
             "password": os.getenv('MYSQL_PASSWORD', 'your_pass'),
             "database": os.getenv('MYSQL_DATABASE', 'defaultdb')
         }
+
+
 
         # Redis Configuration
         self.REDIS_CONFIG = {
