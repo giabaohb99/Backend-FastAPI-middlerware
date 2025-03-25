@@ -1,33 +1,55 @@
 from fastapi import HTTPException, status
+from typing import Any, Optional
 
-class CoreException(HTTPException):
-    def __init__(self, status_code: int, detail: str):
-        super().__init__(status_code=status_code, detail=detail)
+class APIError(HTTPException):
+    """Base class for API errors with error code"""
+    def __init__(
+        self,
+        status_code: int,
+        message: str,
+        error_code: str,
+        details: Optional[list] = None,
+        headers: Optional[dict] = None
+    ) -> None:
+        super().__init__(status_code=status_code, detail=message)
+        self.error_code = error_code
+        self.details = details or []
+        self.headers = headers or {}
 
-class DatabaseError(CoreException):
-    def __init__(self, detail: str = "Database error occurred"):
-        super().__init__(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
+class AuthenticationError(APIError):
+    """Authentication related errors"""
+    def __init__(self, message: str = "Authentication failed"):
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            message=message,
+            error_code="AUTH_ERROR",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
 
-class RedisError(CoreException):
-    def __init__(self, detail: str = "Redis error occurred"):
-        super().__init__(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
+class ValidationError(APIError):
+    """Data validation errors"""
+    def __init__(self, message: str = "Validation failed", details: Optional[list] = None):
+        super().__init__(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            message=message,
+            error_code="VALIDATION_ERROR",
+            details=details
+        )
 
-class ElasticsearchError(CoreException):
-    def __init__(self, detail: str = "Elasticsearch error occurred"):
-        super().__init__(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
+class NotFoundError(APIError):
+    """Resource not found errors"""
+    def __init__(self, message: str = "Resource not found"):
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            message=message,
+            error_code="NOT_FOUND"
+        )
 
-class ValidationError(CoreException):
-    def __init__(self, detail: str = "Validation error"):
-        super().__init__(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
-
-class AuthenticationError(CoreException):
-    def __init__(self, detail: str = "Authentication failed"):
-        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail=detail)
-
-class AuthorizationError(CoreException):
-    def __init__(self, detail: str = "Not authorized"):
-        super().__init__(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
-
-class RateLimitError(CoreException):
-    def __init__(self, detail: str = "Rate limit exceeded"):
-        super().__init__(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=detail) 
+class DatabaseError(APIError):
+    """Database operation errors"""
+    def __init__(self, message: str = "Database operation failed"):
+        super().__init__(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            message=message,
+            error_code="DB_ERROR"
+        )

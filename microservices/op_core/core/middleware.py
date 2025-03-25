@@ -19,10 +19,10 @@ from datetime import datetime, timedelta
 
 # Initialize Redis connection
 redis_client = redis.Redis(
-    host=settings.RATE_LIMIT['REDIS_HOST'],
-    port=settings.RATE_LIMIT['REDIS_PORT'],
-    db=settings.RATE_LIMIT['REDIS_DB'],
-    password=settings.RATE_LIMIT['REDIS_PASSWORD'],
+    host=settings.RATE_LIMIT["REDIS_HOST"],
+    port=settings.RATE_LIMIT["REDIS_PORT"],
+    db=settings.RATE_LIMIT["REDIS_DB"],
+    password=settings.RATE_LIMIT["REDIS_PASSWORD"],
     decode_responses=True
 )
 
@@ -87,8 +87,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             if last_request:
                 # If request was made within cooldown period, block it
                 time_passed = time.time() - float(last_request)
-                if time_passed < settings.RATE_LIMIT['REQUEST_COOLDOWN']:
-                    wait_time = settings.RATE_LIMIT['REQUEST_COOLDOWN'] - time_passed
+                if time_passed < settings.RATE_LIMIT["REQUEST_COOLDOWN"]:
+                    wait_time = settings.RATE_LIMIT["REQUEST_COOLDOWN"] - time_passed
                     error_detail = {
                         "message": "Too many requests",
                         "wait_seconds": round(wait_time, 1),
@@ -103,50 +103,42 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     )
             
             # Update last request time
-            redis_client.setex(
-                request_key,
-                settings.RATE_LIMIT['REQUEST_COOLDOWN'],
-                str(time.time())
+            redis_client.set(
+                request_key, 
+                str(time.time()), 
+                ex=settings.RATE_LIMIT["REQUEST_COOLDOWN"],
             )
             
-            # Check overall rate limit for IP
-            ip_key = f"ip_requests:{client_ip}"
+            # Also check total requests from this IP
+            ip_key = f"rate_limit:total:{client_ip}"
             request_count = redis_client.incr(ip_key)
             
-            # Set expiry if first request
+            # Set expiry for the counter if it's new
             if request_count == 1:
-                redis_client.expire(ip_key, settings.RATE_LIMIT['RATE_LIMIT_WINDOW'])
+                redis_client.expire(ip_key, settings.RATE_LIMIT["RATE_LIMIT_WINDOW"])
             
-            # If too many requests, block IP
-            if request_count > settings.RATE_LIMIT['MAX_REQUESTS']:
+            # Check if too many requests
+            if request_count > settings.RATE_LIMIT["MAX_REQUESTS"]:
                 error_detail = {
                     "message": "Rate limit exceeded",
-                    "retry_after": settings.RATE_LIMIT['RATE_LIMIT_WINDOW'],
+                    "retry_after": settings.RATE_LIMIT["RATE_LIMIT_WINDOW"],
                     "ip": client_ip,
-                    "path": path,
-                    "request_count": request_count,
                     "timestamp": datetime.utcnow().isoformat()
                 }
-                logger.warning(f"IP {client_ip} exceeded maximum requests ({request_count} requests)")
+                logger.warning(f"Rate limit exceeded for IP {client_ip}. Request count: {request_count}")
                 return JSONResponse(
                     status_code=429,
                     content=error_detail
                 )
-            
+                
+            # Process the request
             response = await call_next(request)
             return response
             
         except Exception as e:
-            # Log unexpected errors
-            logger.error(f"Unexpected error in RateLimitMiddleware: {str(e)}", exc_info=True)
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "message": "Internal server error",
-                    "error": str(e),
-                    "timestamp": datetime.utcnow().isoformat()
-                }
-            )
+            logger.error(f"Error in RateLimitMiddleware: {str(e)}", exc_info=True)
+            # Allow request to proceed in case of error in the middleware
+            return await call_next(request)
 
 class LoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -217,25 +209,25 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 db.add(log_entry)
                 db.commit()
                 
-                # Log request details
-                log_data = {
-                    "method": request.method,
-                    "url": str(request.url),
-                    "status_code": response.status_code,
-                    "ip_address": request.client.host,
-                    "user_agent": request.headers.get("user-agent"),
-                    "process_time": process_time,
-                    "sql_queries_count": len(collected_queries),
-                    "timestamp": datetime.utcnow().isoformat()
-                }
+                # # Log request details
+                # log_data = {
+                #     "method": request.method,
+                #     "url": str(request.url),
+                #     "status_code": response.status_code,
+                #     "ip_address": request.client.host,
+                #     "user_agent": request.headers.get("user-agent"),
+                #     "process_time": process_time,
+                #     "sql_queries_count": len(collected_queries),
+                #     "timestamp": datetime.utcnow().isoformat()
+                # }
                 
-                # Log based on status code
-                if response.status_code >= 400:
-                    logger.error(f"Error request: {log_data}")
-                elif response.status_code >= 300:
-                    logger.warning(f"Redirect request: {log_data}")
-                else:
-                    logger.info(f"Successful request: {log_data}")
+                # # Log based on status code
+                # if response.status_code >= 400:
+                #     logger.error(f"Error request: {log_data}")
+                # elif response.status_code >= 300:
+                #     logger.warning(f"Redirect request: {log_data}")
+                # else:
+                #     logger.info(f"Successful request: {log_data}")
                     
             except Exception as e:
                 logger.error(f"Error saving log: {str(e)}")

@@ -2,10 +2,10 @@ import redis
 from .config import settings
 
 redis_client = redis.Redis(
-    host=settings.REDIS_HOST,
-    port=settings.REDIS_PORT,
-    db=settings.REDIS_DB,
-    password=settings.REDIS_PASSWORD,
+    host=settings.REDIS_CONFIG['host'],
+    port=settings.REDIS_CONFIG['port'],
+    db=settings.REDIS_CONFIG['default_db'],
+    password=settings.REDIS_CONFIG['password'],
     decode_responses=True
 )
 

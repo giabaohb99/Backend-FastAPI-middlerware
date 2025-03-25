@@ -1,16 +1,30 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from op_core.core import settings, LoggingMiddleware, RateLimitMiddleware
+from fastapi.exceptions import RequestValidationError, HTTPException
+from pydantic import ValidationError
+from op_core.core import (
+    settings,
+    LoggingMiddleware,
+    RateLimitMiddleware,
+    Base,
+    engine,
+    validation_error_handler,
+    request_validation_error_handler,
+    http_exception_handler,
+    generic_error_handler
+)
+from .api.v1.user import router as user_router
+# from .models import user, token  # Import models to ensure they are registered with Base
+# from op_core.core.error_handlers import ErrorResponse
 
-from .api.v1 import api
-
-# Get users service config
-service_config = settings.SERVICES["users"]
+# Create all tables
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title=service_config["name"],
-    version=service_config["version"],
-    openapi_url=f"{service_config['api_prefix']}/openapi.json"
+    title=settings.SERVICES["users"]["name"],
+    version=settings.SERVICES["users"]["version"],
+    openapi_url=f"{settings.SERVICES['users']['api_prefix']}/openapi.json"
 )
 
 # Set all CORS enabled origins
@@ -28,9 +42,27 @@ app.add_middleware(RateLimitMiddleware)
 # Add request logging middleware
 app.add_middleware(LoggingMiddleware)
 
+# Exception handlers
+app.add_exception_handler(ValidationError, validation_error_handler)
+app.add_exception_handler(RequestValidationError, request_validation_error_handler)
+app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(Exception, generic_error_handler)
+
 # Include routers
 app.include_router(
-    api.router,
-    prefix=service_config["api_prefix"],
+    user_router,
+    prefix=f"{settings.SERVICES['users']['api_prefix']}/user",
     tags=["authentication"]
-) 
+)
+# app.include_router(
+#     otp_router,
+#     prefix=f"{settings.SERVICES['users']['api_prefix']}/otp",
+#     tags=["otp"]
+# )
+
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "service": "users_service"
+    } 

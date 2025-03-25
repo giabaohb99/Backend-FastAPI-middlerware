@@ -13,7 +13,12 @@ engine = create_engine(
     pool_recycle=1800,  # Recycle connections after 30 minutes
     pool_pre_ping=True,  # Enable connection health checks
     poolclass=QueuePool,
-    echo=settings.SQL_DEBUG  # Enable SQL query logging if debug mode is on
+    echo=settings.DEBUG,  # Enable SQL query logging if debug mode is on
+    connect_args={
+        "ssl": {
+            "ssl_mode": "REQUIRED"
+        }
+    }
 )
 
 # Create session factory
@@ -34,4 +39,4 @@ def get_db():
     try:
         yield db
     finally:
-        db.close() 
+        db.close()

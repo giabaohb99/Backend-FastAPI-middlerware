@@ -1,0 +1,48 @@
+services:
+  - type: web
+    name: users-service
+    env: docker
+    dockerfilePath: ./microservices/users_service/Dockerfile
+    dockerContext: ./microservices
+    envVars:
+      - key: REDIS_HOST
+        value: redis
+      - key: REDIS_PORT
+        value: 6379
+      - key: MYSQL_HOST
+        value: db1832025-hb-fd17.e.aivencloud.com
+      - key: MYSQL_PORT
+        value: 18336
+      - key: MYSQL_DATABASE
+        value: defaultdb
+      - key: MYSQL_SSL_MODE
+        value: REQUIRED
+    healthCheckPath: /health
+    autoDeploy: true
+
+  - type: redis
+    name: users-redis
+    ipAllowList: # Allow all IP addresses
+      - source: 0.0.0.0/0
+        description: everywhere
+    plan: free # Free plan
+    
+  - type: web
+    name: adminer
+    env: image
+    image:
+      url: adminer:4.8.1
+    plan: free # Free plan
+    envVars:
+      - key: ADMINER_DEFAULT_SERVER
+        sync: false 
+      - key: ADMINER_DEFAULT_USERNAME
+        sync: false 
+      - key: ADMINER_DEFAULT_DB
+        sync: false 
+      - key: ADMINER_DESIGN
+        value: flat
+      - key: ADMINER_DRIVER
+        value: mysql
+      - key: MYSQL_PWD
+        sync: false 
